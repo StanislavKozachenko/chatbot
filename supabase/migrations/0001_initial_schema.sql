@@ -18,7 +18,7 @@ create table chats (
   id         uuid        primary key default gen_random_uuid(),
   user_id    uuid        not null references auth.users(id) on delete cascade,
   title      text        not null default 'New Chat',
-  model      text        not null default 'google/gemini-2.0-flash-exp',
+  model      text        not null default 'google/gemini-2.0-flash',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

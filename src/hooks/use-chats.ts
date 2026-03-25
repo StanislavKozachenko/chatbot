@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import type { Chat } from "@/types"
 
-export function useChats() {
+export function useChats(enabled = true) {
   return useQuery<Chat[]>({
     queryKey: ["chats"],
     queryFn: async () => {
@@ -12,6 +12,7 @@ export function useChats() {
       if (!res.ok) throw new Error("Failed to fetch chats")
       return res.json()
     },
+    enabled,
   })
 }
 
