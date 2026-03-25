@@ -24,7 +24,6 @@ export interface Profile {
   id: string
   display_name: string | null
   avatar_url: string | null
-  is_anonymous: boolean
   questions_used: number
   created_at: string
   updated_at: string
@@ -42,7 +41,7 @@ export interface Chat {
 export interface Message {
   id: string
   chat_id: string
-  role: "user" | "assistant" | "system"
+  role: "user" | "assistant"
   parts: MessagePart[]
   attachments: MessageAttachment[]
   created_at: string

@@ -2,13 +2,12 @@
 create extension if not exists vector;
 
 -- Profiles: extends auth.users with app-specific data.
--- is_anonymous + questions_used handle the 3-question limit.
+-- questions_used tracks anonymous 3-question limit (is_anonymous read from auth.users natively).
 -- Auto-created via trigger on auth.users insert.
 create table profiles (
   id             uuid        primary key references auth.users(id) on delete cascade,
   display_name   text,
   avatar_url     text,
-  is_anonymous   boolean     not null default false,
   questions_used integer     not null default 0,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
@@ -32,7 +31,7 @@ create index chats_created_at_idx on chats(created_at desc);
 create table messages (
   id          uuid        primary key default gen_random_uuid(),
   chat_id     uuid        not null references chats(id) on delete cascade,
-  role        text        not null check (role in ('user', 'assistant', 'system')),
+  role        text        not null check (role in ('user', 'assistant')),
   parts       jsonb       not null default '[]'::jsonb,
   attachments jsonb       not null default '[]'::jsonb,
   created_at  timestamptz not null default now()
@@ -93,6 +92,7 @@ create index message_file_items_file_item_id_idx on message_file_items(file_item
 create or replace function match_file_items(
   query_embedding vector(768),
   match_count     int,
+  match_threshold float,
   p_chat_id       uuid
 )
 returns table (
@@ -113,9 +113,29 @@ as $$
   from file_items fi
   where fi.chat_id = p_chat_id
     and fi.embedding is not null
+    and 1 - (fi.embedding <=> query_embedding) > match_threshold
   order by fi.embedding <=> query_embedding
   limit match_count;
 $$;
+
+-- Auto-update updated_at on row modification
+create or replace function handle_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create trigger profiles_updated_at
+  before update on profiles
+  for each row execute procedure handle_updated_at();
+
+create trigger chats_updated_at
+  before update on chats
+  for each row execute procedure handle_updated_at();
 
 -- Auto-create profile on Supabase Auth user signup
 create or replace function handle_new_user()
@@ -124,12 +144,11 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, display_name, avatar_url, is_anonymous)
+  insert into public.profiles (id, display_name, avatar_url)
   values (
     new.id,
     new.raw_user_meta_data ->> 'full_name',
-    new.raw_user_meta_data ->> 'avatar_url',
-    coalesce((new.raw_user_meta_data ->> 'is_anonymous')::boolean, false)
+    new.raw_user_meta_data ->> 'avatar_url'
   );
   return new;
 end;
