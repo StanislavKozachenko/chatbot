@@ -1,3 +1,9 @@
+import { notFound, redirect } from "next/navigation"
+import { createSessionClient } from "@/lib/supabase/session"
+import { createServerClient } from "@/lib/supabase/server"
+import { Chat } from "@/components/chat/chat"
+import type { UIMessage } from "ai"
+
 export default async function ChatPage({
   params,
 }: {
@@ -5,9 +11,33 @@ export default async function ChatPage({
 }) {
   const { id } = await params
 
-  return (
-    <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-      Chat {id}
-    </div>
-  )
+  const session = await createSessionClient()
+  const {
+    data: { user },
+  } = await session.auth.getUser()
+  if (!user) redirect("/login")
+
+  const db = createServerClient()
+
+  const { data: chat } = await db
+    .from("chats")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (!chat || chat.user_id !== user.id) notFound()
+
+  const { data: dbMessages } = await db
+    .from("messages")
+    .select("*")
+    .eq("chat_id", id)
+    .order("created_at", { ascending: true })
+
+  const initialMessages: UIMessage[] = (dbMessages ?? []).map((msg) => ({
+    id: msg.id,
+    role: msg.role as "user" | "assistant",
+    parts: msg.parts,
+  }))
+
+  return <Chat chatId={id} initialMessages={initialMessages} />
 }

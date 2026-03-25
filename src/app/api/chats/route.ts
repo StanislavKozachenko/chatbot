@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await request.json()
-  const { title = "New Chat", model = "google/gemini-2.0-flash-exp" } = body
+  const { title = "New Chat", model = "google/gemini-2.0-flash" } = body
 
   const db = createServerClient()
   const { data: chat, error } = await db

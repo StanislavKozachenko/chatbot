@@ -11,10 +11,10 @@ import { useAuth } from "@/hooks/use-auth"
 import { useUser } from "@/hooks/use-user"
 
 function SidebarContent() {
-  const { data: chats, isLoading } = useChats()
+  const user = useUser()
+  const { data: chats, isLoading } = useChats(!!user)
   const { mutate: createChat, isPending } = useCreateChat()
   const { signOut } = useAuth()
-  const user = useUser()
 
   return (
     <div className="flex h-full flex-col">
