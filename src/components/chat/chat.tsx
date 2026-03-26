@@ -6,6 +6,7 @@ import { DefaultChatTransport } from "ai"
 import { useQueryClient } from "@tanstack/react-query"
 import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
+import { FileUpload } from "./file-upload"
 import type { UIMessage } from "ai"
 import type { MessageAttachment } from "@/types"
 
@@ -50,6 +51,7 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <MessageList messages={messages} isLoading={isLoading} />
+      <FileUpload chatId={chatId} />
       <MessageInput
         input={input}
         isLoading={isLoading}

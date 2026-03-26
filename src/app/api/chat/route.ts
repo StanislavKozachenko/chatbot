@@ -1,5 +1,5 @@
-import { convertToModelMessages, generateText, streamText } from "ai"
-import { google } from "@ai-sdk/google"
+import { convertToModelMessages, embed, generateText, streamText } from "ai"
+import { cohere } from "@ai-sdk/cohere"
 import { groq } from "@ai-sdk/groq"
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
@@ -60,8 +60,40 @@ export async function POST(request: Request) {
     ? groq("meta-llama/llama-4-scout-17b-16e-instruct")
     : groq("llama-3.3-70b-versatile")
 
+  // RAG: retrieve relevant chunks if files are attached to this chat
+  let systemPrompt: string | undefined
+  if (firstMessageText) {
+    const { data: filesExist } = await db
+      .from("files")
+      .select("id")
+      .eq("chat_id", chatId)
+      .limit(1)
+
+    if (filesExist && filesExist.length > 0) {
+      try {
+        const { embedding } = await embed({
+          model: cohere.textEmbeddingModel("embed-english-v3.0"),
+          value: firstMessageText,
+        })
+
+        const { data: chunks } = await db.rpc("match_file_items", {
+          query_embedding: JSON.stringify(embedding),
+          match_count: 5,
+          match_threshold: 0.3,
+          p_chat_id: chatId,
+        })
+
+        if (chunks && chunks.length > 0) {
+          const context = chunks.map((c: { content: string }) => c.content).join("\n\n---\n\n")
+          systemPrompt = `Use the following document context to answer the user's question when relevant:\n\n${context}`
+        }
+      } catch {}
+    }
+  }
+
   const result = streamText({
     model,
+    system: systemPrompt,
     messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
       await db.from("messages").insert({
