@@ -38,6 +38,9 @@ export function FileUpload({ chatId }: FileUploadProps) {
   }
 
   const handleDelete = async (id: string) => {
+    queryClient.setQueryData<ChatFile[]>(["files", chatId], (prev) =>
+      prev ? prev.filter((f) => f.id !== id) : prev
+    )
     await fetch(`/api/files/${id}`, { method: "DELETE" })
     queryClient.invalidateQueries({ queryKey: ["files", chatId] })
   }

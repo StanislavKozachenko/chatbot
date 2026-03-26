@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     if (filesExist && filesExist.length > 0) {
       try {
         const { embedding } = await embed({
-          model: cohere.textEmbeddingModel("embed-english-v3.0"),
+          model: cohere.embeddingModel("embed-english-v3.0"),
           value: firstMessageText,
         })
 

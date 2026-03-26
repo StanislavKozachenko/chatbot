@@ -1,6 +1,7 @@
 "use client"
 
-import { LogOut, Plus } from "lucide-react"
+import { LogOut, Moon, Plus, Sun } from "lucide-react"
+import { useTheme } from "@/hooks/use-theme"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -16,6 +17,7 @@ function SidebarContent() {
   useChatsSync(user?.id)
   const { mutate: createChat, isPending } = useCreateChat()
   const { signOut } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
 
   return (
     <div className="flex h-full flex-col">
@@ -61,6 +63,14 @@ function SidebarContent() {
             {user?.is_anonymous ? "Guest" : user?.email}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </Button>
         <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={signOut}>
           <LogOut className="size-4" />
         </Button>

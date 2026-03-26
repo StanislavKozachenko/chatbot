@@ -2,7 +2,19 @@ import { notFound, redirect } from "next/navigation"
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
 import { Chat } from "@/components/chat/chat"
+import type { Metadata } from "next"
 import type { UIMessage } from "ai"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const db = createServerClient()
+  const { data: chat } = await db.from("chats").select("title").eq("id", id).single()
+  return { title: chat?.title ?? "Chat" }
+}
 
 export default async function ChatPage({
   params,
