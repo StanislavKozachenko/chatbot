@@ -4,9 +4,18 @@ import { useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
 import { FileUpload } from "./file-upload"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import type { UIMessage } from "ai"
 import type { MessageAttachment } from "@/types"
 
@@ -17,7 +26,9 @@ interface ChatProps {
 
 export function Chat({ chatId, initialMessages }: ChatProps) {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const [input, setInput] = useState("")
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   const { messages, sendMessage, status } = useChat({
     messages: initialMessages,
@@ -27,6 +38,11 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
     }),
     onFinish: () => {
       queryClient.invalidateQueries({ queryKey: ["chats"] })
+    },
+    onError: (error) => {
+      if (error.message.includes("Anonymous limit reached")) {
+        setShowAuthModal(true)
+      }
     },
   })
 
@@ -58,6 +74,25 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
         onInputChange={setInput}
         onSend={handleSend}
       />
+
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Free limit reached</DialogTitle>
+            <DialogDescription>
+              You&apos;ve used your 3 free messages. Create an account to continue chatting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => router.push("/login")}>
+              Log in
+            </Button>
+            <Button onClick={() => router.push("/register")}>
+              Sign up
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -43,6 +43,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  if (user.is_anonymous) {
+    const { data: userChats } = await db
+      .from("chats")
+      .select("id")
+      .eq("user_id", user.id)
+
+    const chatIds = (userChats ?? []).map((c) => c.id)
+
+    const { count } = await db
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "user")
+      .in("chat_id", chatIds)
+
+    if ((count ?? 0) >= 3) {
+      return NextResponse.json({ error: "Anonymous limit reached" }, { status: 403 })
+    }
+  }
+
   const lastMessage = messages[messages.length - 1]
   const isFirstMessage = messages.length === 1
   const firstMessageText =
