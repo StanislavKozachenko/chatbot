@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
 import { FileUpload } from "./file-upload"
+import { useMessagesSync } from "@/hooks/use-messages-sync"
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,7 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
   const [input, setInput] = useState("")
   const [showAuthModal, setShowAuthModal] = useState(false)
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, setMessages, sendMessage, status } = useChat({
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -47,6 +48,8 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
   })
 
   const isLoading = status === "submitted" || status === "streaming"
+
+  useMessagesSync({ chatId, messages, setMessages, isStreaming: isLoading })
 
   const handleSend = (attachments: MessageAttachment[]) => {
     if (!input.trim() && !attachments.length) return

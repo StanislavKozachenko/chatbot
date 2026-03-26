@@ -1,8 +1,34 @@
 "use client"
 
+import { useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import type { Chat } from "@/types"
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
+
+export function useChatsSync(userId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!userId) return
+
+    const supabase = createSupabaseBrowserClient()
+    const channel = supabase
+      .channel("chats-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chats", filter: `user_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["chats"] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, queryClient])
+}
 
 export function useChats(enabled = true) {
   return useQuery<Chat[]>({

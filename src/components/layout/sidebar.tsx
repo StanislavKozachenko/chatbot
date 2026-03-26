@@ -6,13 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SidebarItem } from "./sidebar-item"
-import { useChats, useCreateChat } from "@/hooks/use-chats"
+import { useChats, useChatsSync, useCreateChat } from "@/hooks/use-chats"
 import { useAuth } from "@/hooks/use-auth"
 import { useUser } from "@/hooks/use-user"
 
 function SidebarContent() {
   const user = useUser()
   const { data: chats, isLoading } = useChats(!!user)
+  useChatsSync(user?.id)
   const { mutate: createChat, isPending } = useCreateChat()
   const { signOut } = useAuth()
 
