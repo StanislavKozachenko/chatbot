@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
 import type { UIMessage } from "ai"
+import type { MessageAttachment } from "@/types"
 
 interface ChatProps {
   chatId: string
@@ -30,9 +31,19 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
 
   const isLoading = status === "submitted" || status === "streaming"
 
-  const handleSend = () => {
-    if (!input.trim() || isLoading) return
-    sendMessage({ text: input })
+  const handleSend = (attachments: MessageAttachment[]) => {
+    if (!input.trim() && !attachments.length) return
+    if (isLoading) return
+
+    sendMessage({
+      text: input,
+      files: attachments.map((a) => ({
+        type: "file" as const,
+        url: a.url,
+        mediaType: a.contentType,
+        filename: a.name,
+      })),
+    })
     setInput("")
   }
 
