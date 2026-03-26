@@ -52,11 +52,16 @@ export async function POST(request: Request) {
     chat_id: chatId,
     role: "user",
     parts: lastMessage.parts,
-    attachments: [],
+    attachments: lastMessage.parts.filter((p) => p.type === "file"),
   })
 
+  const hasImages = messages.some((m) => m.parts.some((p) => p.type === "file"))
+  const model = hasImages
+    ? groq("meta-llama/llama-4-scout-17b-16e-instruct")
+    : groq("llama-3.3-70b-versatile")
+
   const result = streamText({
-    model: groq("llama-3.3-70b-versatile"),
+    model,
     messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
       await db.from("messages").insert({

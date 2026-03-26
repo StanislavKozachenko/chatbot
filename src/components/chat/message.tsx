@@ -17,6 +17,16 @@ export function ChatMessage({ message }: { message: UIMessage }) {
         )}
       >
         {message.parts.map((part, i) => {
+          if (part.type === "file") {
+            return (
+              <img
+                key={i}
+                src={part.url}
+                alt={part.filename ?? "attachment"}
+                className="mb-2 max-w-full rounded-lg"
+              />
+            )
+          }
           if (part.type === "text") {
             return isUser ? (
               <p key={i} className="whitespace-pre-wrap break-words">
