@@ -16,6 +16,7 @@ export interface MessageAttachment {
   type: "image"
   url: string
   name: string
+  contentType: string
 }
 
 // Database row types

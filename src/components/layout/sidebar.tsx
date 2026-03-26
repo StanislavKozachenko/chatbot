@@ -22,7 +22,7 @@ function SidebarContent() {
         <Button
           className="w-full justify-start gap-2"
           variant="outline"
-          onClick={() => createChat()}
+          onClick={() => createChat({})}
           disabled={isPending}
         >
           <Plus className="size-4" />
