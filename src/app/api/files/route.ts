@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   const chunks = await splitter.splitText(text)
 
   const { embeddings } = await embedMany({
-    model: cohere.textEmbeddingModel("embed-english-v3.0"),
+    model: cohere.embeddingModel("embed-english-v3.0"),
     values: chunks,
   })
 
