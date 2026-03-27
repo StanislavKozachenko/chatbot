@@ -37,7 +37,7 @@ export default async function ChatPage({
     .eq("id", id)
     .single()
 
-  if (!chat || chat.user_id !== user.id) notFound()
+  if (!chat || chat.user_id !== user.id) redirect("/")
 
   const { data: dbMessages } = await db
     .from("messages")
@@ -51,5 +51,5 @@ export default async function ChatPage({
     parts: msg.parts,
   }))
 
-  return <Chat chatId={id} initialMessages={initialMessages} />
+  return <Chat chatId={id} initialMessages={initialMessages} title={chat.title} />
 }

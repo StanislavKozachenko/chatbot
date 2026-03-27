@@ -46,7 +46,8 @@ export function FileUpload({ chatId }: FileUploadProps) {
   }
 
   return (
-    <div className="px-4 pb-2">
+    <div className="flex justify-center px-4 pb-2">
+      <div className="w-full max-w-6xl">
       <input
         ref={fileInputRef}
         type="file"
@@ -83,6 +84,7 @@ export function FileUpload({ chatId }: FileUploadProps) {
         <Paperclip className="size-3" />
         {uploading ? "Uploading..." : "Attach document"}
       </Button>
+      </div>
     </div>
   )
 }

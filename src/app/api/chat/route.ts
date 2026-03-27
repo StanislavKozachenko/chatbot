@@ -44,20 +44,13 @@ export async function POST(request: Request) {
   }
 
   if (user.is_anonymous) {
-    const { data: userChats } = await db
-      .from("chats")
-      .select("id")
-      .eq("user_id", user.id)
+    const { data: profile } = await db
+      .from("profiles")
+      .select("questions_used")
+      .eq("id", user.id)
+      .single()
 
-    const chatIds = (userChats ?? []).map((c) => c.id)
-
-    const { count } = await db
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "user")
-      .in("chat_id", chatIds)
-
-    if ((count ?? 0) >= 3) {
+    if ((profile?.questions_used ?? 0) >= 3) {
       return NextResponse.json({ error: "Anonymous limit reached" }, { status: 403 })
     }
   }
@@ -73,6 +66,10 @@ export async function POST(request: Request) {
     parts: lastMessage.parts,
     attachments: lastMessage.parts.filter((p) => p.type === "file"),
   })
+
+  if (user.is_anonymous) {
+    await db.rpc("increment_questions_used", { user_id: user.id })
+  }
 
   const hasImages = messages.some((m) => m.parts.some((p) => p.type === "file"))
   const model = hasImages

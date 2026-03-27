@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { useQueryClient } from "@tanstack/react-query"
@@ -9,6 +9,7 @@ import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
 import { FileUpload } from "./file-upload"
 import { useMessagesSync } from "@/hooks/use-messages-sync"
+import { useChats } from "@/hooks/use-chats"
 import {
   Dialog,
   DialogContent,
@@ -23,15 +24,19 @@ import type { MessageAttachment } from "@/types"
 interface ChatProps {
   chatId: string
   initialMessages: UIMessage[]
+  title: string
 }
 
-export function Chat({ chatId, initialMessages }: ChatProps) {
+export function Chat({ chatId, initialMessages, title }: ChatProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
   const [input, setInput] = useState("")
   const [showAuthModal, setShowAuthModal] = useState(false)
 
-  const { messages, setMessages, sendMessage, status } = useChat({
+  const { data: chats } = useChats(false)
+  const currentTitle = chats?.find((c) => c.id === chatId)?.title ?? title
+
+  const { messages, setMessages, sendMessage, stop, status, error } = useChat({
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -40,14 +45,16 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
     onFinish: () => {
       queryClient.invalidateQueries({ queryKey: ["chats"] })
     },
-    onError: (error) => {
-      if (error.message.includes("Anonymous limit reached")) {
-        setShowAuthModal(true)
-      }
-    },
   })
 
   const isLoading = status === "submitted" || status === "streaming"
+
+  useEffect(() => {
+    if (error?.message.includes("Anonymous limit reached")) {
+      setMessages((prev) => prev.slice(0, -1))
+      setShowAuthModal(true)
+    }
+  }, [error])
 
   useMessagesSync({ chatId, messages, setMessages, isStreaming: isLoading })
 
@@ -69,6 +76,10 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex h-12 shrink-0 items-center border-b px-4">
+        <span className="truncate text-sm font-medium">{currentTitle}</span>
+      </div>
+
       <MessageList messages={messages} isLoading={isLoading} />
       <FileUpload chatId={chatId} />
       <MessageInput
@@ -76,6 +87,7 @@ export function Chat({ chatId, initialMessages }: ChatProps) {
         isLoading={isLoading}
         onInputChange={setInput}
         onSend={handleSend}
+        onStop={stop}
       />
 
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
