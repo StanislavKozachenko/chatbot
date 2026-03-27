@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import type { Chat } from "@/types"
+import { applyRenameToChats } from "@/lib/chats"
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 
 export function useChatsSync(userId: string | undefined) {
@@ -79,9 +80,7 @@ export function useRenameChat() {
     onMutate: async ({ id, title }) => {
       await queryClient.cancelQueries({ queryKey: ["chats"] })
       const previous = queryClient.getQueryData<Chat[]>(["chats"])
-      queryClient.setQueryData<Chat[]>(["chats"], (old) =>
-        old?.map((c) => (c.id === id ? { ...c, title } : c)) ?? []
-      )
+      queryClient.setQueryData<Chat[]>(["chats"], (old) => applyRenameToChats(old, id, title))
       return { previous }
     },
     onError: (_err, _vars, context) => {

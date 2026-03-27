@@ -1,5 +1,6 @@
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
+import { mapDbMessagesToUI } from "@/lib/messages"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
@@ -33,11 +34,5 @@ export async function GET(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const uiMessages = (messages ?? []).map((msg) => ({
-    id: msg.id,
-    role: msg.role as "user" | "assistant",
-    parts: msg.parts,
-  }))
-
-  return NextResponse.json(uiMessages)
+  return NextResponse.json(mapDbMessagesToUI(messages))
 }
