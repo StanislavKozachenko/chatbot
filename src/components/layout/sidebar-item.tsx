@@ -75,6 +75,7 @@ export function SidebarItem({ chat }: { chat: Chat }) {
 
   return (
     <div
+      data-testid="sidebar-item"
       className={cn(
         "group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm",
         isActive
@@ -95,6 +96,7 @@ export function SidebarItem({ chat }: { chat: Chat }) {
       <Button
         variant="ghost"
         size="icon"
+        aria-label="Delete"
         className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
         disabled={isDeleting}
         onClick={(e) => {
