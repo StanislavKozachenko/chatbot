@@ -3,6 +3,8 @@ import { cohere } from "@ai-sdk/cohere"
 import { groq } from "@ai-sdk/groq"
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
+import { isAnonymousLimitReached } from "@/lib/chats"
+import { selectModelId, getFirstMessageText } from "@/lib/chat"
 import { NextResponse } from "next/server"
 import type { UIMessage } from "ai"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -50,15 +52,14 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single()
 
-    if ((profile?.questions_used ?? 0) >= 3) {
+    if (isAnonymousLimitReached(profile?.questions_used)) {
       return NextResponse.json({ error: "Anonymous limit reached" }, { status: 403 })
     }
   }
 
   const lastMessage = messages[messages.length - 1]
   const isFirstMessage = messages.length === 1
-  const firstMessageText =
-    lastMessage.parts.find((p) => p.type === "text")?.text ?? ""
+  const firstMessageText = getFirstMessageText(messages)
 
   await db.from("messages").insert({
     chat_id: chatId,
@@ -71,10 +72,7 @@ export async function POST(request: Request) {
     await db.rpc("increment_questions_used", { user_id: user.id })
   }
 
-  const hasImages = messages.some((m) => m.parts.some((p) => p.type === "file"))
-  const model = hasImages
-    ? groq("meta-llama/llama-4-scout-17b-16e-instruct")
-    : groq("llama-3.3-70b-versatile")
+  const model = groq(selectModelId(messages))
 
   // RAG: retrieve relevant chunks if files are attached to this chat
   let systemPrompt: string | undefined
