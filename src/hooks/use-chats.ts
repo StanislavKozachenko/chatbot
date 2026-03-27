@@ -63,6 +63,38 @@ export function useCreateChat() {
   })
 }
 
+export function useRenameChat() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const res = await fetch(`/api/chats/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      })
+      if (!res.ok) throw new Error("Failed to rename chat")
+      return res.json()
+    },
+    onMutate: async ({ id, title }) => {
+      await queryClient.cancelQueries({ queryKey: ["chats"] })
+      const previous = queryClient.getQueryData<Chat[]>(["chats"])
+      queryClient.setQueryData<Chat[]>(["chats"], (old) =>
+        old?.map((c) => (c.id === id ? { ...c, title } : c)) ?? []
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["chats"], context.previous)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["chats"] })
+    },
+  })
+}
+
 export function useDeleteChat() {
   const queryClient = useQueryClient()
   const router = useRouter()
