@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     text = await extractText(buffer, file.type)
   } catch (e) {
     console.error("[files] extractText error:", e)
+    await db.storage.from("files").remove([storagePath])
     return NextResponse.json({ error: "Failed to extract text from file" }, { status: 422 })
   }
 
@@ -116,7 +117,11 @@ export async function POST(request: Request) {
   }))
 
   const { error: itemsError } = await db.from("file_items").insert(fileItems)
-  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  if (itemsError) {
+    await db.from("files").delete().eq("id", fileRecord.id)
+    await db.storage.from("files").remove([storagePath])
+    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  }
 
   return NextResponse.json(fileRecord, { status: 201 })
 }

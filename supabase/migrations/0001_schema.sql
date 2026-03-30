@@ -118,15 +118,22 @@ as $$
   limit match_count;
 $$;
 
--- increment_questions_used: atomically increments the anonymous question counter.
-create or replace function increment_questions_used(user_id uuid)
-returns void
-language sql
-security definer
+-- check_and_increment_questions: atomically checks the limit and increments.
+-- Returns true if the question was counted (under limit), false if limit reached.
+create or replace function check_and_increment_questions(p_user_id uuid, p_limit int)
+returns boolean
+language plpgsql
 as $$
+declare
+  updated int;
+begin
   update profiles
   set questions_used = questions_used + 1
-  where id = user_id;
+  where id = p_user_id and questions_used < p_limit;
+
+  get diagnostics updated = row_count;
+  return updated > 0;
+end;
 $$;
 
 -- Auto-update updated_at on row modification

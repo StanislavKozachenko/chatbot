@@ -29,21 +29,49 @@ export function useAuth() {
   const signUp = async (email: string, password: string) => {
     setIsLoading(true)
     setError(null)
-    // If currently anonymous, convert in-place (preserves user_id and all chats)
+    // If currently anonymous, convert in-place (preserves user_id and all chats).
+    // Use getSession() (local storage read) instead of getUser() (network call)
+    // to reliably detect anonymous state during sign-up.
     const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser()
-    const isAnonymous = currentUser?.is_anonymous ?? false
-    const { error } = isAnonymous
+      data: { session: currentSession },
+    } = await supabase.auth.getSession()
+    const anonymousUserId = currentSession?.user?.is_anonymous
+      ? currentSession.user.id
+      : null
+
+    const { error } = anonymousUserId
       ? await supabase.auth.updateUser({ email, password })
       : await supabase.auth.signUp({ email, password })
+
     if (error) {
       setError(error.message)
+      setIsLoading(false)
+      return
+    }
+
+    // If the anonymous user was converted in-place, user_id is preserved —
+    // just invalidate to re-fetch the same chats.
+    // If a new user was created (e.g. updateUser signed the user out due to
+    // email confirmation), migrate chats from the old anonymous user as a fallback.
+    if (anonymousUserId) {
+      const {
+        data: { session: newSession },
+      } = await supabase.auth.getSession()
+      const newUserId = newSession?.user?.id
+      if (newUserId && newUserId !== anonymousUserId) {
+        await fetch("/api/auth/migrate-chats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ anonymousUserId }),
+        })
+      }
+      queryClient.invalidateQueries({ queryKey: ["chats"] })
     } else {
       queryClient.clear()
-      router.push("/")
-      router.refresh()
     }
+
+    router.push("/")
+    router.refresh()
     setIsLoading(false)
   }
 

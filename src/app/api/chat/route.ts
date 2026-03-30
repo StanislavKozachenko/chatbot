@@ -3,7 +3,6 @@ import { cohere } from "@ai-sdk/cohere"
 import { groq } from "@ai-sdk/groq"
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
-import { isAnonymousLimitReached } from "@/lib/chats"
 import { selectModelId, getFirstMessageText } from "@/lib/chat"
 import { NextResponse } from "next/server"
 import type { UIMessage } from "ai"
@@ -45,21 +44,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  if (user.is_anonymous) {
-    const { data: profile } = await db
-      .from("profiles")
-      .select("questions_used")
-      .eq("id", user.id)
-      .single()
-
-    if (isAnonymousLimitReached(profile?.questions_used)) {
-      return NextResponse.json({ error: "Anonymous limit reached" }, { status: 403 })
-    }
-  }
-
   const lastMessage = messages[messages.length - 1]
   const isFirstMessage = messages.length === 1
   const firstMessageText = getFirstMessageText(messages)
+
+  if (user.is_anonymous) {
+    const { data: allowed } = await db.rpc("check_and_increment_questions", {
+      p_user_id: user.id,
+      p_limit: 3,
+    })
+    if (!allowed) {
+      return NextResponse.json({ error: "Anonymous limit reached" }, { status: 403 })
+    }
+  }
 
   await db.from("messages").insert({
     chat_id: chatId,
@@ -68,14 +65,11 @@ export async function POST(request: Request) {
     attachments: lastMessage.parts.filter((p) => p.type === "file"),
   })
 
-  if (user.is_anonymous) {
-    await db.rpc("increment_questions_used", { user_id: user.id })
-  }
-
   const model = groq(selectModelId(messages))
 
   // RAG: retrieve relevant chunks if files are attached to this chat
-  let systemPrompt: string | undefined
+  const baseInstruction = "Never use dollar signs ($) around words or phrases — do not use LaTeX-style math notation for anything other than actual mathematical expressions."
+  let systemPrompt: string = baseInstruction
   const { data: filesExist } = await db
     .from("files")
     .select("id")
@@ -98,7 +92,7 @@ export async function POST(request: Request) {
 
       if (chunks && chunks.length > 0) {
         const context = chunks.map((c: { content: string }) => c.content).join("\n\n---\n\n")
-        systemPrompt = `The user has attached documents to this conversation. Use the following excerpts as context when answering:\n\n${context}`
+        systemPrompt = `${baseInstruction}\n\nThe user has attached documents to this conversation. Use the following excerpts as context when answering:\n\n${context}`
       }
     } catch (e) {
       console.error("[chat] RAG embed error:", e)
