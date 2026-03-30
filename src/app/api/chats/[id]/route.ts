@@ -51,6 +51,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  const { data: files } = await db
+    .from("files")
+    .select("storage_path")
+    .eq("chat_id", id)
+
+  if (files && files.length > 0) {
+    await db.storage.from("files").remove(files.map((f) => f.storage_path))
+  }
+
   await db.from("chats").delete().eq("id", id)
   return new NextResponse(null, { status: 204 })
 }

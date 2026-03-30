@@ -2,14 +2,27 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/use-auth"
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const { signIn, signInAnonymously, isLoading, error } = useAuth()
+  const router = useRouter()
+
+  const handleContinueAsGuest = async () => {
+    const supabase = createSupabaseBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user?.is_anonymous) {
+      router.push("/")
+    } else {
+      await signInAnonymously()
+    }
+  }
 
   return (
     <div className="w-full max-w-sm space-y-6">
@@ -75,7 +88,7 @@ export default function LoginPage() {
       <Button
         variant="outline"
         className="w-full"
-        onClick={signInAnonymously}
+        onClick={handleContinueAsGuest}
         disabled={isLoading}
       >
         Continue as guest

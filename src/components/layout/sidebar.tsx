@@ -1,6 +1,7 @@
 "use client"
 
 import { LogOut, Moon, Plus, Sun } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useTheme } from "@/hooks/use-theme"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -18,6 +19,7 @@ function SidebarContent() {
   const { mutate: createChat, isPending } = useCreateChat()
   const { signOut } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
+  const router = useRouter()
 
   return (
     <div className="flex h-full flex-col">
@@ -71,7 +73,12 @@ function SidebarContent() {
         >
           {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
-        <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={signOut}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0"
+          onClick={user?.is_anonymous ? () => router.push("/login") : signOut}
+        >
           <LogOut className="size-4" />
         </Button>
       </div>

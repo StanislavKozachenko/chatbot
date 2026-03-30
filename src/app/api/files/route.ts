@@ -69,16 +69,28 @@ export async function POST(request: Request) {
     text = await extractText(buffer, file.type)
   } catch (e) {
     console.error("[files] extractText error:", e)
+    await db.storage.from("files").remove([storagePath])
     return NextResponse.json({ error: "Failed to extract text from file" }, { status: 422 })
   }
 
   const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 })
   const chunks = await splitter.splitText(text)
 
-  const { embeddings } = await embedMany({
-    model: cohere.embeddingModel("embed-english-v3.0"),
-    values: chunks,
-  })
+  let embeddings: number[][]
+  try {
+    const result = await embedMany({
+      model: cohere.embeddingModel("embed-english-v3.0"),
+      values: chunks,
+    })
+    embeddings = result.embeddings
+  } catch (e) {
+    console.error("[files] embedMany error:", e)
+    await db.storage.from("files").remove([storagePath])
+    return NextResponse.json(
+      { error: "Embedding service unavailable. Document could not be indexed." },
+      { status: 503 }
+    )
+  }
 
   const { data: fileRecord, error: fileError } = await db
     .from("files")
@@ -105,7 +117,11 @@ export async function POST(request: Request) {
   }))
 
   const { error: itemsError } = await db.from("file_items").insert(fileItems)
-  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  if (itemsError) {
+    await db.from("files").delete().eq("id", fileRecord.id)
+    await db.storage.from("files").remove([storagePath])
+    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  }
 
   return NextResponse.json(fileRecord, { status: 201 })
 }

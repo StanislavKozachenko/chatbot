@@ -58,7 +58,7 @@ export function useCreateChat() {
       return res.json() as Promise<Chat>
     },
     onSuccess: (chat) => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] })
+      queryClient.setQueryData<Chat[]>(["chats"], (old) => [chat, ...(old ?? [])])
       router.push(`/chat/${chat.id}`)
     },
   })

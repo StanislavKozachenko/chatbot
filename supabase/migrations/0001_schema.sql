@@ -57,14 +57,14 @@ create table files (
 create index files_chat_id_idx on files(chat_id);
 
 -- File items: document chunks with vector embeddings for RAG.
--- embedding: Google text-embedding-004 → 768 dimensions.
+-- embedding: Cohere embed-english-v3.0 → 1024 dimensions.
 -- HNSW index enables fast approximate nearest-neighbour search.
 create table file_items (
   id          uuid        primary key default gen_random_uuid(),
   file_id     uuid        not null references files(id) on delete cascade,
   chat_id     uuid        not null references chats(id) on delete cascade,
   content     text        not null,
-  embedding   vector(768),
+  embedding   vector(1024),
   chunk_index integer     not null,
   created_at  timestamptz not null default now()
 );
@@ -90,7 +90,7 @@ create index message_file_items_file_item_id_idx on message_file_items(file_item
 -- match_file_items: cosine similarity search used in the RAG retrieval pipeline.
 -- Returns top-N chunks for a given chat ordered by similarity.
 create or replace function match_file_items(
-  query_embedding vector(768),
+  query_embedding vector(1024),
   match_count     int,
   match_threshold float,
   p_chat_id       uuid
@@ -116,6 +116,24 @@ as $$
     and 1 - (fi.embedding <=> query_embedding) > match_threshold
   order by fi.embedding <=> query_embedding
   limit match_count;
+$$;
+
+-- check_and_increment_questions: atomically checks the limit and increments.
+-- Returns true if the question was counted (under limit), false if limit reached.
+create or replace function check_and_increment_questions(p_user_id uuid, p_limit int)
+returns boolean
+language plpgsql
+as $$
+declare
+  updated int;
+begin
+  update profiles
+  set questions_used = questions_used + 1
+  where id = p_user_id and questions_used < p_limit;
+
+  get diagnostics updated = row_count;
+  return updated > 0;
+end;
 $$;
 
 -- Auto-update updated_at on row modification
@@ -157,3 +175,7 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure handle_new_user();
+
+-- Enable Realtime for cross-tab sync on chats and messages tables
+alter publication supabase_realtime add table chats;
+alter publication supabase_realtime add table messages;
