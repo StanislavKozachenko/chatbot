@@ -89,7 +89,7 @@ export function MessageInput({
               />
               <button
                 onClick={() => setAttachments((prev) => prev.filter((x) => x.url !== a.url))}
-                className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-foreground text-background"
               >
                 <X className="size-2.5" />
               </button>
