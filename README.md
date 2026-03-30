@@ -45,7 +45,7 @@ Fill in `.env.local`:
 
 **3. Apply database migrations**
 
-In your [Supabase SQL editor](https://supabase.com/dashboard/project/_/sql), run each file from `supabase/migrations/` in order (there are 6 files, `0001_` through `0006_`). This only needs to be done once.
+In your [Supabase SQL editor](https://supabase.com/dashboard/project/_/sql), run each file from `supabase/migrations/` in order (`0001_schema.sql`, then `0002_storage.sql`). This only needs to be done once.
 
 **4. Install dependencies and start the dev server**
 
