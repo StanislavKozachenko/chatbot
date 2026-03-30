@@ -76,32 +76,32 @@ export async function POST(request: Request) {
 
   // RAG: retrieve relevant chunks if files are attached to this chat
   let systemPrompt: string | undefined
-  if (firstMessageText) {
-    const { data: filesExist } = await db
-      .from("files")
-      .select("id")
-      .eq("chat_id", chatId)
-      .limit(1)
+  const { data: filesExist } = await db
+    .from("files")
+    .select("id")
+    .eq("chat_id", chatId)
+    .limit(1)
 
-    if (filesExist && filesExist.length > 0) {
-      try {
-        const { embedding } = await embed({
-          model: cohere.embeddingModel("embed-english-v3.0"),
-          value: firstMessageText,
-        })
+  if (filesExist && filesExist.length > 0) {
+    try {
+      const { embedding } = await embed({
+        model: cohere.embeddingModel("embed-english-v3.0"),
+        value: firstMessageText || "summarize the document",
+      })
 
-        const { data: chunks } = await db.rpc("match_file_items", {
-          query_embedding: JSON.stringify(embedding),
-          match_count: 5,
-          match_threshold: 0.3,
-          p_chat_id: chatId,
-        })
+      const { data: chunks } = await db.rpc("match_file_items", {
+        query_embedding: JSON.stringify(embedding),
+        match_count: 5,
+        match_threshold: 0,
+        p_chat_id: chatId,
+      })
 
-        if (chunks && chunks.length > 0) {
-          const context = chunks.map((c: { content: string }) => c.content).join("\n\n---\n\n")
-          systemPrompt = `Use the following document context to answer the user's question when relevant:\n\n${context}`
-        }
-      } catch {}
+      if (chunks && chunks.length > 0) {
+        const context = chunks.map((c: { content: string }) => c.content).join("\n\n---\n\n")
+        systemPrompt = `The user has attached documents to this conversation. Use the following excerpts as context when answering:\n\n${context}`
+      }
+    } catch (e) {
+      console.error("[chat] RAG embed error:", e)
     }
   }
 
