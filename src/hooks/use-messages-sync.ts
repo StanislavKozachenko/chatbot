@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import type { UIMessage } from "ai"
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 import type { Message } from "@/types"
@@ -13,6 +13,9 @@ interface UseMessagesSyncOptions {
 }
 
 export function useMessagesSync({ chatId, messages, setMessages, isStreaming }: UseMessagesSyncOptions) {
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
 
@@ -25,7 +28,7 @@ export function useMessagesSync({ chatId, messages, setMessages, isStreaming }: 
           if (isStreaming) return
 
           const row = payload.new as Message
-          const alreadyExists = messages.some((m) => m.id === row.id)
+          const alreadyExists = messagesRef.current.some((m) => m.id === row.id)
           if (alreadyExists) return
 
           const newMessage: UIMessage = {
@@ -42,5 +45,5 @@ export function useMessagesSync({ chatId, messages, setMessages, isStreaming }: 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [chatId, isStreaming, messages, setMessages])
+  }, [chatId, isStreaming, setMessages])
 }
