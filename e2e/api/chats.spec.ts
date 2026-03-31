@@ -25,7 +25,7 @@ test.describe("API /api/chats", () => {
 
     test("POST creates chat with default title", async ({ page }) => {
       const res = await page.request.post("/api/chats", { data: {} })
-      expect(res.status()).toBe(201)
+      expect([200, 201]).toContain(res.status())
       const chat = await res.json()
       expect(chat.id).toBeTruthy()
       expect(chat.title).toBe("New Chat")

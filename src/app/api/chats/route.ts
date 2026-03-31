@@ -25,25 +25,27 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await request.json()
-  const { title = "New Chat", model = "google/gemini-2.0-flash" } = body
+  const { title = "New Chat", model = "google/gemini-2.0-flash", deduplicate = false } = body
 
   const db = createServerClient()
 
-  const { data: latestChat } = await db
-    .from("chats")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  if (deduplicate) {
+    const { data: latestChat } = await db
+      .from("chats")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-  if (latestChat) {
-    const { count } = await db
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("chat_id", latestChat.id)
+    if (latestChat) {
+      const { count } = await db
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("chat_id", latestChat.id)
 
-    if (count === 0) return NextResponse.json(latestChat, { status: 200 })
+      if (count === 0) return NextResponse.json(latestChat, { status: 200 })
+    }
   }
 
   const { data: chat, error } = await db
