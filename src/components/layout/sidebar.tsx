@@ -37,7 +37,7 @@ function SidebarContent() {
 
       <Separator />
 
-      <ScrollArea className="flex-1 px-2 py-2">
+      <ScrollArea className="min-h-0 flex-1 px-2 py-2">
         {isLoading ? (
           <div className="space-y-1">
             {Array.from({ length: 5 }).map((_, i) => (
