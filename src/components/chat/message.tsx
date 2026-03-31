@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { memo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -42,7 +42,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   )
 }
 
-export function ChatMessage({ message }: { message: UIMessage }) {
+export const ChatMessage = memo(function ChatMessage({ message }: { message: UIMessage }) {
   const isUser = message.role === "user"
   const [copied, setCopied] = useState(false)
 
@@ -135,4 +135,4 @@ export function ChatMessage({ message }: { message: UIMessage }) {
       </div>
     </div>
   )
-}
+})
