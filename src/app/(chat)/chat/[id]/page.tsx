@@ -44,6 +44,7 @@ export default async function ChatPage({
     .select("*")
     .eq("chat_id", id)
     .order("created_at", { ascending: true })
+    .limit(100)
 
   const initialMessages: UIMessage[] = (dbMessages ?? []).map((msg) => ({
     id: msg.id,
