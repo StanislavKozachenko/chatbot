@@ -70,13 +70,15 @@ export async function POST(request: Request) {
   // RAG: retrieve relevant chunks if files are attached to this chat
   const baseInstruction = "Never use dollar signs ($) around words or phrases — do not use LaTeX-style math notation for anything other than actual mathematical expressions."
   let systemPrompt: string = baseInstruction
-  const { data: filesExist } = await db
+  const { data: attachedFiles } = await db
     .from("files")
-    .select("id")
+    .select("id, name")
     .eq("chat_id", chatId)
-    .limit(1)
 
-  if (filesExist && filesExist.length > 0) {
+  if (attachedFiles && attachedFiles.length > 0) {
+    const fileNames = attachedFiles.map((f: { name: string }) => f.name).join(", ")
+    systemPrompt = `${baseInstruction}\n\nThe user has attached the following documents to this conversation: ${fileNames}. You have access to their contents via the excerpts below.`
+
     try {
       const { embedding } = await embed({
         model: cohere.embeddingModel("embed-english-v3.0"),
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
 
       if (chunks && chunks.length > 0) {
         const context = chunks.map((c: { content: string }) => c.content).join("\n\n---\n\n")
-        systemPrompt = `${baseInstruction}\n\nThe user has attached documents to this conversation. Use the following excerpts as context when answering:\n\n${context}`
+        systemPrompt += `\n\nRelevant excerpts:\n\n${context}`
       }
     } catch (e) {
       console.error("[chat] RAG embed error:", e)
