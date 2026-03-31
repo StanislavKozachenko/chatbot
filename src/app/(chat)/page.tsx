@@ -18,7 +18,7 @@ export default function HomePage() {
           Start a new conversation or select one from the sidebar
         </p>
       </div>
-      <Button onClick={() => createChat({})} disabled={isPending}>
+      <Button onClick={() => createChat({ deduplicate: true })} disabled={isPending}>
         New chat
       </Button>
     </div>

@@ -48,17 +48,20 @@ export function useCreateChat() {
   const router = useRouter()
 
   return useMutation({
-    mutationFn: async (data?: { title?: string; model?: string }) => {
+    mutationFn: async (data?: { title?: string; model?: string; deduplicate?: boolean }) => {
       const res = await fetch("/api/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data ?? {}),
       })
       if (!res.ok) throw new Error("Failed to create chat")
-      return res.json() as Promise<Chat>
+      const chat = (await res.json()) as Chat
+      return { chat, isNew: res.status === 201 }
     },
-    onSuccess: (chat) => {
-      queryClient.setQueryData<Chat[]>(["chats"], (old) => [chat, ...(old ?? [])])
+    onSuccess: ({ chat, isNew }) => {
+      if (isNew) {
+        queryClient.setQueryData<Chat[]>(["chats"], (old) => [chat, ...(old ?? [])])
+      }
       router.push(`/chat/${chat.id}`)
     },
   })

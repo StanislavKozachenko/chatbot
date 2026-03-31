@@ -42,7 +42,7 @@ test.describe("Chat", () => {
     await input.fill("My Renamed Chat")
     await page.getByLabel("Save").click()
 
-    await expect(page.locator("aside").getByText("My Renamed Chat")).toBeVisible()
+    await expect(page.locator("aside").getByText("My Renamed Chat").first()).toBeVisible()
   })
 
   test("can delete a chat from sidebar", async ({ page }) => {
