@@ -15,7 +15,7 @@ async function generateChatTitle(
 ) {
   try {
     const { text } = await generateText({
-      model: groq("llama-3.3-70b-versatile"),
+      model: groq("openai/gpt-oss-120b"),
       prompt: `Generate a short title (max 6 words) for a chat that starts with: "${firstMessageText}". Reply with only the title, no quotes.`,
     })
     await db.from("chats").update({ title: text.trim() }).eq("id", chatId)

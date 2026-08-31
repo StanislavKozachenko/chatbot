@@ -6,7 +6,7 @@ const makeChat = (id: string, title: string): Chat => ({
   id,
   title,
   user_id: "user-1",
-  model: "groq/llama-3.3-70b-versatile",
+  model: "groq/openai/gpt-oss-120b",
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 })
@@ -45,7 +45,7 @@ describe("applyRenameToChats", () => {
     expect(result).toMatchObject({
       id: "a",
       user_id: "user-1",
-      model: "groq/llama-3.3-70b-versatile",
+      model: "groq/openai/gpt-oss-120b",
       title: "Renamed",
     })
   })
