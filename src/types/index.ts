@@ -78,7 +78,7 @@ export interface MessageFileItem {
 
 export type ModelId =
   | "google/gemini-2.0-flash-exp"
-  | "groq/llama-3.3-70b-versatile"
+  | "groq/openai/gpt-oss-120b"
 
 export interface ModelOption {
   id: ModelId
