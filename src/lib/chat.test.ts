@@ -85,12 +85,18 @@ describe("parseUserMessage", () => {
   const image = { type: "file", url: `${base}u/1.png`, mediaType: "image/png", filename: "1.png" }
   const parse = (input: unknown) => parseUserMessage(input, base)
 
-  it("accepts a text message", () => {
-    expect(parse({ id: "1", role: "user", parts: [textPart("hi")] })).toEqual({
-      id: "1",
+  it("accepts a text message and keeps a UUID id", () => {
+    const id = "6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f"
+    expect(parse({ id, role: "user", parts: [textPart("hi")] })).toEqual({
+      id,
       role: "user",
       parts: [textPart("hi")],
     })
+  })
+
+  it("replaces a non-UUID id with a generated UUID", () => {
+    const result = parse({ id: "abc123", role: "user", parts: [textPart("hi")] })
+    expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
   })
 
   it("accepts an image from the attachments bucket", () => {

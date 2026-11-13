@@ -17,6 +17,8 @@ export const MAX_TEXT_LENGTH = 10000
 export const MAX_IMAGES = 4
 export const HISTORY_LIMIT = 30
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // Validates the single new message a client sends to /api/chat.
 // Returns null when the message is not a well-formed user message.
 export function parseUserMessage(input: unknown, attachmentsBaseUrl: string): UIMessage | null {
@@ -56,5 +58,6 @@ export function parseUserMessage(input: unknown, attachmentsBaseUrl: string): UI
   if (textLength > MAX_TEXT_LENGTH || images > MAX_IMAGES) return null
   if (textLength === 0 && images === 0) return null
 
-  return { id, role: "user", parts: clean }
+  // The id is reused as the DB primary key, so it must be a UUID
+  return { id: UUID_RE.test(id) ? id : crypto.randomUUID(), role: "user", parts: clean }
 }
