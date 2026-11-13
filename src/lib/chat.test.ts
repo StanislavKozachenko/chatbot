@@ -4,6 +4,9 @@ import {
   getFirstMessageText,
   VISION_MODEL_ID,
   DEFAULT_MODEL_ID,
+  parseUserMessage,
+  MAX_TEXT_LENGTH,
+  MAX_IMAGES,
 } from "./chat"
 import type { UIMessage } from "ai"
 
@@ -74,5 +77,62 @@ describe("getFirstMessageText", () => {
   it("extracts text when message has mixed parts", () => {
     const messages = [makeMessage([filePart(), textPart("describe this")])]
     expect(getFirstMessageText(messages)).toBe("describe this")
+  })
+})
+
+describe("parseUserMessage", () => {
+  const base = "https://project.supabase.co/storage/v1/object/public/attachments/"
+  const image = { type: "file", url: `${base}u/1.png`, mediaType: "image/png", filename: "1.png" }
+  const parse = (input: unknown) => parseUserMessage(input, base)
+
+  it("accepts a text message", () => {
+    expect(parse({ id: "1", role: "user", parts: [textPart("hi")] })).toEqual({
+      id: "1",
+      role: "user",
+      parts: [textPart("hi")],
+    })
+  })
+
+  it("accepts an image from the attachments bucket", () => {
+    expect(parse({ id: "1", role: "user", parts: [image] })?.parts).toEqual([image])
+  })
+
+  it("rejects assistant and system roles", () => {
+    expect(parse({ id: "1", role: "assistant", parts: [textPart("hi")] })).toBeNull()
+    expect(parse({ id: "1", role: "system", parts: [textPart("hi")] })).toBeNull()
+  })
+
+  it("rejects images from other hosts", () => {
+    expect(
+      parse({ id: "1", role: "user", parts: [{ ...image, url: "https://evil.example/x.png" }] })
+    ).toBeNull()
+  })
+
+  it("rejects non-image files", () => {
+    expect(parse({ id: "1", role: "user", parts: [{ ...image, mediaType: "text/html" }] })).toBeNull()
+  })
+
+  it("rejects unknown part types", () => {
+    expect(parse({ id: "1", role: "user", parts: [{ type: "tool-call" }] })).toBeNull()
+  })
+
+  it("rejects text over the length limit", () => {
+    expect(parse({ id: "1", role: "user", parts: [textPart("a".repeat(MAX_TEXT_LENGTH + 1))] })).toBeNull()
+  })
+
+  it("rejects too many images", () => {
+    expect(parse({ id: "1", role: "user", parts: Array(MAX_IMAGES + 1).fill(image) })).toBeNull()
+  })
+
+  it("rejects empty and malformed input", () => {
+    expect(parse(null)).toBeNull()
+    expect(parse({ id: "1", role: "user", parts: [] })).toBeNull()
+    expect(parse({ id: "1", role: "user", parts: [textPart("")] })).toBeNull()
+    expect(parse({ role: "user", parts: [textPart("hi")] })).toBeNull()
+  })
+
+  it("drops unexpected fields from parts", () => {
+    const result = parse({ id: "1", role: "user", parts: [{ ...textPart("hi"), providerMetadata: { x: 1 } }] })
+    expect(result?.parts).toEqual([textPart("hi")])
   })
 })
