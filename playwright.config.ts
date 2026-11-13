@@ -24,10 +24,11 @@ export default defineConfig({
   ],
   webServer: !process.env.BASE_URL
     ? {
-        command: "npm run dev",
+        // Production build on CI: no on-demand route compilation during tests
+        command: isCI ? "npm run build && npm run start" : "npm run dev",
         url: baseURL,
         reuseExistingServer: !isCI,
-        timeout: isCI ? 120000 : 60000,
+        timeout: isCI ? 300000 : 60000,
       }
     : undefined,
 })
