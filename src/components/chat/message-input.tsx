@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react"
 import { SendHorizontal, Square, ImagePlus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { MAX_IMAGES } from "@/lib/chat"
 import type { MessageAttachment } from "@/types"
 
 interface MessageInputProps {
@@ -42,7 +43,9 @@ export function MessageInput({
   }
 
   const handleFiles = async (files: File[]) => {
-    const images = files.filter((f) => f.type.startsWith("image/"))
+    const images = files
+      .filter((f) => f.type.startsWith("image/"))
+      .slice(0, MAX_IMAGES - attachments.length)
     if (!images.length) return
     setUploading(true)
     const results = await Promise.all(images.map(uploadFile))

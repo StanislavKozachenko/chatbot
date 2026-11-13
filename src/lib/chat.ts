@@ -1,11 +1,29 @@
 import type { UIMessage } from "ai"
 
-export const VISION_MODEL_ID = "meta-llama/llama-4-scout-17b-16e-instruct"
+// Groq vision model, accepts up to 3 images per request
+export const VISION_MODEL_ID = "qwen/qwen3.8-27b"
 export const DEFAULT_MODEL_ID = "openai/gpt-oss-120b"
 
 export function selectModelId(messages: UIMessage[]): string {
   const hasImages = messages.some((m) => m.parts.some((p) => p.type === "file"))
   return hasImages ? VISION_MODEL_ID : DEFAULT_MODEL_ID
+}
+
+// Keeps images only in the most recent message that has them; older images become
+// a text note. Each image costs ~2K tokens, so this keeps requests within model limits.
+export function keepLatestImages(messages: UIMessage[]): UIMessage[] {
+  let latest = -1
+  messages.forEach((m, i) => {
+    if (m.parts.some((p) => p.type === "file")) latest = i
+  })
+  return messages.map((m, i) =>
+    i === latest || !m.parts.some((p) => p.type === "file")
+      ? m
+      : {
+          ...m,
+          parts: m.parts.map((p) => (p.type === "file" ? { type: "text" as const, text: "[image]" } : p)),
+        }
+  )
 }
 
 export function getFirstMessageText(messages: UIMessage[]): string {
@@ -14,7 +32,7 @@ export function getFirstMessageText(messages: UIMessage[]): string {
 }
 
 export const MAX_TEXT_LENGTH = 10000
-export const MAX_IMAGES = 4
+export const MAX_IMAGES = 3
 export const HISTORY_LIMIT = 30
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

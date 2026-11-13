@@ -8,6 +8,7 @@ import {
   getFirstMessageText,
   parseUserMessage,
   HISTORY_LIMIT,
+  keepLatestImages,
 } from "@/lib/chat"
 import { NextResponse } from "next/server"
 import type { UIMessage } from "ai"
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false })
     .limit(HISTORY_LIMIT)
 
-  const messages: UIMessage[] = [...(history ?? []).reverse(), lastMessage]
+  const messages: UIMessage[] = keepLatestImages([...(history ?? []).reverse(), lastMessage])
   const isFirstMessage = messages.length === 1
   const firstMessageText = getFirstMessageText(messages)
 
