@@ -5,6 +5,7 @@ import {
   VISION_MODEL_ID,
   DEFAULT_MODEL_ID,
   parseUserMessage,
+  keepLatestImages,
   MAX_TEXT_LENGTH,
   MAX_IMAGES,
 } from "./chat"
@@ -140,5 +141,32 @@ describe("parseUserMessage", () => {
   it("drops unexpected fields from parts", () => {
     const result = parse({ id: "1", role: "user", parts: [{ ...textPart("hi"), providerMetadata: { x: 1 } }] })
     expect(result?.parts).toEqual([textPart("hi")])
+  })
+})
+
+describe("keepLatestImages", () => {
+  const user = (id: string, parts: UIMessage["parts"]) => ({ id, role: "user", parts }) as UIMessage
+
+  it("keeps images of the most recent message with images and replaces older ones", () => {
+    const result = keepLatestImages([
+      user("1", [filePart(), textPart("first")]),
+      user("2", [textPart("plain")]),
+      user("3", [filePart(), textPart("second")]),
+      user("4", [textPart("follow-up")]),
+    ])
+    expect(result[0].parts).toEqual([textPart("[image]"), textPart("first")])
+    expect(result[1].parts).toEqual([textPart("plain")])
+    expect(result[2].parts).toEqual([filePart(), textPart("second")])
+    expect(result[3].parts).toEqual([textPart("follow-up")])
+  })
+
+  it("leaves messages without images unchanged", () => {
+    const messages = [user("1", [textPart("a")]), user("2", [textPart("b")])]
+    expect(keepLatestImages(messages)).toEqual(messages)
+  })
+
+  it("keeps the vision model while the latest image is in context", () => {
+    const result = keepLatestImages([user("1", [filePart()]), user("2", [textPart("what is it?")])])
+    expect(selectModelId(result)).toBe(VISION_MODEL_ID)
   })
 })
