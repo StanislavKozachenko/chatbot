@@ -40,7 +40,10 @@ export function Chat({ chatId, initialMessages, title }: ChatProps) {
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { chatId },
+      // The server rebuilds context from stored history; send only the new message
+      prepareSendMessagesRequest: ({ messages }) => ({
+        body: { chatId, message: messages[messages.length - 1] },
+      }),
     }),
     onFinish: () => {
       queryClient.invalidateQueries({ queryKey: ["chats"] })
