@@ -36,7 +36,7 @@ export function Chat({ chatId, initialMessages, title }: ChatProps) {
   const { data: chats } = useChats(false)
   const currentTitle = chats?.find((c) => c.id === chatId)?.title ?? title
 
-  const { messages, setMessages, sendMessage, stop, status, error } = useChat({
+  const { messages, setMessages, sendMessage, regenerate, stop, status, error } = useChat({
     messages: initialMessages,
     // UUIDs match the DB primary keys, so Realtime echoes of own messages are skipped
     generateId: () => crypto.randomUUID(),
@@ -53,6 +53,8 @@ export function Chat({ chatId, initialMessages, title }: ChatProps) {
   })
 
   const isLoading = status === "submitted" || status === "streaming"
+  const limitReached = !!error?.message.includes("Anonymous limit reached")
+  const showError = !!error && !limitReached && !isLoading
 
   useEffect(() => {
     if (error?.message.includes("Anonymous limit reached")) {
@@ -86,6 +88,16 @@ export function Chat({ chatId, initialMessages, title }: ChatProps) {
       </div>
 
       <MessageList messages={messages} isLoading={isLoading} />
+      {showError && (
+        <div className="flex justify-center px-4 pb-2">
+          <div role="alert" className="flex w-full max-w-6xl items-center gap-2 text-xs text-destructive">
+            <span>Something went wrong while generating the reply.</span>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => regenerate()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
       <FileUpload chatId={chatId} />
       <MessageInput
         input={input}

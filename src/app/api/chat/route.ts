@@ -64,6 +64,8 @@ export async function POST(request: Request) {
     .from("messages")
     .select("id, role, parts")
     .eq("chat_id", chatId)
+    // On retry the same user message is already stored
+    .neq("id", lastMessage.id)
     .order("created_at", { ascending: false })
     .limit(HISTORY_LIMIT)
 
