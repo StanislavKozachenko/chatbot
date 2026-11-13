@@ -80,7 +80,11 @@ export async function POST(request: Request) {
     }
   }
 
+  // Rows share ids with the client's messages, so Realtime echoes can be deduplicated
+  const assistantMessageId = crypto.randomUUID()
+
   await db.from("messages").insert({
+    id: lastMessage.id,
     chat_id: chatId,
     role: "user",
     parts: lastMessage.parts,
@@ -129,6 +133,7 @@ export async function POST(request: Request) {
     messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
       await db.from("messages").insert({
+        id: assistantMessageId,
         chat_id: chatId,
         role: "assistant",
         parts: [{ type: "text", text }],
@@ -144,5 +149,7 @@ export async function POST(request: Request) {
     },
   })
 
-  return result.toUIMessageStreamResponse()
+  return result.toUIMessageStreamResponse({
+    generateMessageId: () => assistantMessageId,
+  })
 }
