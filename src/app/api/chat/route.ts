@@ -3,7 +3,12 @@ import { cohere } from "@ai-sdk/cohere"
 import { groq } from "@ai-sdk/groq"
 import { createSessionClient } from "@/lib/supabase/session"
 import { createServerClient } from "@/lib/supabase/server"
-import { selectModelId, getFirstMessageText } from "@/lib/chat"
+import {
+  selectModelId,
+  getFirstMessageText,
+  parseUserMessage,
+  HISTORY_LIMIT,
+} from "@/lib/chat"
 import { NextResponse } from "next/server"
 import type { UIMessage } from "ai"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -29,8 +34,11 @@ export async function POST(request: Request) {
   } = await session.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { messages, chatId }: { messages: UIMessage[]; chatId: string } =
-    await request.json()
+  const body = await request.json().catch(() => null)
+  const chatId: unknown = body?.chatId
+  if (typeof chatId !== "string") {
+    return NextResponse.json({ error: "chatId required" }, { status: 400 })
+  }
 
   const db = createServerClient()
 
@@ -44,7 +52,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const lastMessage = messages[messages.length - 1]
+  const attachmentsBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/`
+  const lastMessage = parseUserMessage(body.message, attachmentsBaseUrl)
+  if (!lastMessage) {
+    return NextResponse.json({ error: "Invalid message" }, { status: 400 })
+  }
+
+  // Context comes from stored history; the client only sends the new message
+  const { data: history } = await db
+    .from("messages")
+    .select("id, role, parts")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: false })
+    .limit(HISTORY_LIMIT)
+
+  const messages: UIMessage[] = [...(history ?? []).reverse(), lastMessage]
   const isFirstMessage = messages.length === 1
   const firstMessageText = getFirstMessageText(messages)
 
