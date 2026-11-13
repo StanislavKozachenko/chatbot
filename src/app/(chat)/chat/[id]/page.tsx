@@ -43,10 +43,11 @@ export default async function ChatPage({
     .from("messages")
     .select("*")
     .eq("chat_id", id)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(100)
 
-  const initialMessages: UIMessage[] = (dbMessages ?? []).map((msg) => ({
+  // Newest 100 messages, displayed oldest first
+  const initialMessages: UIMessage[] = (dbMessages ?? []).reverse().map((msg) => ({
     id: msg.id,
     role: msg.role as "user" | "assistant",
     parts: msg.parts,
