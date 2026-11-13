@@ -38,6 +38,8 @@ export function Chat({ chatId, initialMessages, title }: ChatProps) {
 
   const { messages, setMessages, sendMessage, stop, status, error } = useChat({
     messages: initialMessages,
+    // UUIDs match the DB primary keys, so Realtime echoes of own messages are skipped
+    generateId: () => crypto.randomUUID(),
     transport: new DefaultChatTransport({
       api: "/api/chat",
       // The server rebuilds context from stored history; send only the new message
