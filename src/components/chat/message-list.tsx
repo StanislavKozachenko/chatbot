@@ -9,6 +9,11 @@ interface MessageListProps {
   isLoading: boolean
 }
 
+// A failed or still-starting reply has no text yet; don't render an empty bubble for it
+function hasVisibleContent(message: UIMessage) {
+  return message.parts.some((p) => (p.type === "text" && p.text.trim() !== "") || p.type === "file")
+}
+
 export function MessageList({ messages, isLoading }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -28,7 +33,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-4 p-4">
-        {messages.map((message) => (
+        {messages.filter(hasVisibleContent).map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
         {isLoading && (
