@@ -1,4 +1,6 @@
 import { Page } from "@playwright/test"
+import fs from "fs"
+import path from "path"
 
 export async function mockChatAPI(
   page: Page,
@@ -38,12 +40,13 @@ export async function mockChatAPI(
   })
 }
 
+export const AUTH_FILE = path.join(__dirname, ".auth", "user.json")
+
+// Reuses the session saved by global-setup.ts instead of signing in again
 export async function login(page: Page) {
-  await page.goto("/login")
-  await page.getByLabel("Email").fill(process.env.TEST_USER_EMAIL!)
-  await page.getByLabel("Password").fill(process.env.TEST_USER_PASSWORD!)
-  await page.getByRole("button", { name: /log in|sign in/i }).click()
-  await page.waitForURL("/")
+  const { cookies } = JSON.parse(fs.readFileSync(AUTH_FILE, "utf8"))
+  await page.context().addCookies(cookies)
+  await page.goto("/")
 }
 
 export async function createChat(page: Page, title = "Test Chat"): Promise<string> {
